@@ -20,24 +20,28 @@ def cleanup_files():
     
     print(f"Creating backup in: {backup_dir}")
     
-    # Essential files to keep
+    # Essential files to keep (absolute paths)
     essential_files = [
-        "tb_dataset.py",
-        "tb_detection_comparison.ipynb",
-        "cleanup_files.py"  # Include this script
+        os.path.join(tuberculosis_dir, "tb_dataset.py"),
+        os.path.join(tuberculosis_dir, "tb_detection_comparison.ipynb"),
+        os.path.join(tuberculosis_dir, "cleanup_files.py")  # Include this script
     ]
     
     # Copy all files to backup
     for filename in os.listdir(tuberculosis_dir):
         file_path = os.path.join(tuberculosis_dir, filename)
         
-        # Skip directories and the backup dir itself
-        if os.path.isdir(file_path) and filename != os.path.basename(backup_dir):
-            # For directories, copy entire directory to backup
+        # Skip directories that start with "backup_"
+        if os.path.isdir(file_path) and filename.startswith("backup_"):
+            print(f"Skipping existing backup directory: {filename}")
+            continue
+            
+        # For directories, copy entire directory to backup
+        if os.path.isdir(file_path):
             shutil.copytree(file_path, os.path.join(backup_dir, filename))
             print(f"Backed up directory: {filename}")
+        # For files, copy to backup
         elif os.path.isfile(file_path):
-            # For files, copy to backup
             shutil.copy2(file_path, os.path.join(backup_dir, filename))
             print(f"Backed up file: {filename}")
     
@@ -46,13 +50,23 @@ def cleanup_files():
     for filename in os.listdir(tuberculosis_dir):
         file_path = os.path.join(tuberculosis_dir, filename)
         
-        if os.path.isfile(file_path) and filename not in essential_files:
+        # Skip essential files and backup directories
+        if file_path in essential_files:
+            print(f"Keeping essential file: {filename}")
+            continue
+            
+        if os.path.isdir(file_path) and filename.startswith("backup_"):
+            print(f"Keeping backup directory: {filename}")
+            continue
+        
+        # Delete non-essential files
+        if os.path.isfile(file_path):
             os.remove(file_path)
             files_deleted += 1
-            print(f"Deleted: {filename}")
+            print(f"Deleted file: {filename}")
         
-        # Delete directories (except backup dir)
-        if os.path.isdir(file_path) and filename != os.path.basename(backup_dir):
+        # Delete directories
+        if os.path.isdir(file_path):
             shutil.rmtree(file_path)
             print(f"Deleted directory: {filename}")
     
@@ -64,11 +78,20 @@ def cleanup_files():
 
 if __name__ == "__main__":
     # Confirmation prompt
-    print("This script will delete unnecessary files in the tuberculosis directory.")
-    print("A backup will be created before deletion.")
-    confirmation = input("Do you want to continue? (y/n): ")
+    print("\n--- TUBERCULOSIS DIRECTORY CLEANUP ---")
+    print("This script will:")
+    print("1. Create a backup of all files")
+    print("2. Delete ALL files and directories EXCEPT:")
+    print("   - tb_dataset.py")
+    print("   - tb_detection_comparison.ipynb")
+    print("   - cleanup_files.py (this script)")
+    print("   - backup_* directories")
+    print("\nWARNING: This action cannot be undone except by restoring from the backup.")
+    confirmation = input("\nDo you want to continue? (y/n): ")
     
     if confirmation.lower() == 'y':
         cleanup_files()
+        print("\nCleanup completed successfully!")
+        print("You can now safely commit your changes to your branch.")
     else:
         print("Operation cancelled.")
